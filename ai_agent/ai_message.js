@@ -24,7 +24,7 @@ const MODEL = "gpt-5-nano";
  */
 async function sendToAI(question, options = {}) {
   const {
-    maxTokens = 20480,
+    maxTokens = 50000,
     temperature = 0.7,
     messages: customMessages,
   } = options;
@@ -49,7 +49,8 @@ async function sendToAI(question, options = {}) {
     },
     body: JSON.stringify(body),
   });
-
+  
+  console.log("提交的问题", body);
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`AI API 请求失败: ${res.status} ${res.statusText}\n${text}`);
