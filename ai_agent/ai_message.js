@@ -7,7 +7,7 @@
 const BASE_URL = "https://chat.ainft.com/webapi";
 
 /** @type {string} API 密钥 */
-const API_KEY = "sk-f9e9a93c217043b58f5798f4928e097f";
+const API_KEY = "sk-1ani5mphu5hev7j5husyuhhwuzgvrswa";
 
 /** @type {string} 使用的模型名称 */
 const MODEL = "gpt-5-nano";
