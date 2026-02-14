@@ -4,13 +4,13 @@
  */
 
 /** @type {string} API 基础地址 */
-const BASE_URL = "http://127.0.0.1:8045/v1";
+const BASE_URL = "https://chat.ainft.com/webapi";
 
 /** @type {string} API 密钥 */
 const API_KEY = "sk-f9e9a93c217043b58f5798f4928e097f";
 
 /** @type {string} 使用的模型名称 */
-const MODEL = "claude-opus-4-5-thinking";
+const MODEL = "gpt-5-nano";
 
 /**
  * 向 AI API 发送问题并获取回复
@@ -24,7 +24,7 @@ const MODEL = "claude-opus-4-5-thinking";
  */
 async function sendToAI(question, options = {}) {
   const {
-    maxTokens = 2048,
+    maxTokens = 20480,
     temperature = 0.7,
     messages: customMessages,
   } = options;
@@ -40,7 +40,7 @@ async function sendToAI(question, options = {}) {
     temperature,
   };
 
-  const url = `${BASE_URL.replace(/\/$/, "")}/chat/completions`;
+  const url = `${BASE_URL.replace(/\/$/, "")}/chat/openai`;
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -55,13 +55,42 @@ async function sendToAI(question, options = {}) {
     throw new Error(`AI API 请求失败: ${res.status} ${res.statusText}\n${text}`);
   }
 
-  const data = await res.json();
+ let fullText = "";
 
-  if (data.error) {
-    throw new Error(data.error.message || JSON.stringify(data.error));
-  }
+// 检查是否是流式返回
+  if (res.headers.get('content-type')?.includes('text/event-stream')) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+  
+      while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+  
+          const chunk = decoder.decode(value, { stream: true });
+  
+          // 解析返回的这种特殊格式 (id, event, data)
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                  const dataValue = line.replace('data: ', '').trim();
+                // 过滤掉非内容数据
+                if (dataValue && dataValue !== '"stop"' && !dataValue.startsWith('{')) {
+                    // 去掉引号 (如果是 "text" 格式)
+                    const content = dataValue.replace(/^"|"$/g, '');
+                    fullText += content;
+                    // 如果你想在控制台实时看到打印，取消下一行的注释
+                    //process.stdout.write(content); 
+                    }
+                }
+            }
+        }
+    } else {
+        // 如果不是流，走常规逻辑
+        const data = await res.json();
+        fullText = data.choices[0].message.content;
+    }
 
-  const content = data.choices?.[0]?.message?.content;
+  const content = fullText;
   if (content == null) {
     throw new Error("API 返回中缺少回复内容");
   }
